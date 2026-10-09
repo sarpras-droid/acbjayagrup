@@ -1,0 +1,53 @@
+
+name: Build APK Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Install Android SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Extract project
+        run: |
+          unzip ACB_Jaya_Grup_Android_v1.1.zip -d source
+          find source -name gradlew -exec chmod +x {} \;
+
+      - name: Build APK
+        run: |
+          cd source
+          PROJECT_DIR=$(find . -name gradlew -type f | head -n 1)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Gradle wrapper not found"
+            exit 1
+          fi
+          cd "$(dirname "$PROJECT_DIR")"
+          ./gradlew --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ACB-Jaya-Grup-APK
+          path: source/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
